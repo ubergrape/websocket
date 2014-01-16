@@ -7,19 +7,22 @@
   <body>
     <script src="../build/build.js"></script>
     <script>
-    
     var websocket = require('websocket');
 
-    var ws = websocket();
+    var ws = websocket('ws://' + document.location.host);
 
     ws.on('message', function(msg){
-      console.log(msg.data);
+      console.log(msg);
     });
-    
     ws.on('open', function(){
       ws.send('hello there');
     });
-    
+    ws.on('close', function () {
+      console.log('closed');
+    });
+    ws.on('error', function (err) {
+      console.log(err);
+    });
     </script>
   </body>
 </html>

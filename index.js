@@ -5,17 +5,7 @@
 
 var Emitter = require('emitter');
 
-/**
- * Connection states.
- */
-
-var states = {
-  '-1': 'inactive',
-  0: 'connecting',
-  1: 'open',
-  2: 'closing',
-  3: 'closed'
-};
+module.exports = WebSocketWrapper;
 
 /**
  * Create a WebSocket to optional `host`,
@@ -26,73 +16,61 @@ var states = {
  * @api public
  */
 
-module.exports = function(host){
-  var ws = Emitter({});
-  ws.host = host || 'ws://'+document.location.host;
-  ws.state = state;
-  ws.close = close;
+function WebSocketWrapper(url) {
+	if (!(this instanceof WebSocketWrapper))
+		return new WebSocketWrapper(url);
 
-  var reconnect = delay(connect, 1000);
-  ws.on('error', reconnect);
-  ws.on('close', reconnect);
+	Emitter.call(this);
 
-  connect();
-
-  return ws;
-
-  function connect(){
-    if ('closed' == ws.state()) ws.socket = null;
-    if ('inactive' != ws.state()) return;
-
-    try {
-      var socket = new WebSocket(ws.host);
-    }
-    catch (err) {
-      return setTimeout(function(){
-        ws.emit('error', err);
-      }, 0);
-    }
-    
-    socket.onmessage = onmessage;
-    socket.onopen = onopen;
-    socket.onclose = onclose;
-    socket.onerror = onerror;
-
-    ws.socket = socket;
-    ws.send = socket.send.bind(socket);
-  }
-
-  function state(){
-    return states[this.socket ? this.socket.readyState : -1];
-  }
-
-  function close(r){
-    // don't reconnect
-    if (!r) {
-      this.off('error', reconnect);
-      this.off('close', reconnect);
-    }
-
-    this.socket.close();
-  }
-
-  function onmessage(message){ ws.emit('message', message); }
-  function onopen(){ ws.emit('open'); }
-  function onclose(){ ws.emit('close'); }
-  function onerror(e){ ws.emit('error', e); }
+	this.url = url;
+	this._socket = undefined;
+	this._connect();
 }
+WebSocketWrapper.prototype = Object.create(Emitter.prototype);
+
+// wrap the states
+WebSocketWrapper.prototype.CONNECTING = 0;
+WebSocketWrapper.prototype.OPEN = 1;
+WebSocketWrapper.prototype.CLOSING = 2;
+WebSocketWrapper.prototype.CLOSED = 3;
+
+// wrap readyState
+Object.defineProperty(WebSocketWrapper.prototype, 'readyState', {
+	enumerable: true,
+	get: function () {
+		return this._socket ? this._socket.readyState : this.CLOSED;
+	}
+});
+
+// wrap this for easier extensibility
+WebSocketWrapper.prototype.send = function WebSocketWrapper_send(msg) {
+	this._send(msg);
+};
 
 /**
- * Create a delayed function.
- * 
- * @param {Function} fn
- * @param {Number} ms
- * @return {Function}
- * @api private
+ * Connect the websocket and hook up the events
  */
+WebSocketWrapper.prototype._connect = function WebSocketWrapper__connect() {
+	// maybe close and re-open?
+	if (this.readyState === this.OPEN)
+		return;
+	var self = this;
+	var socket;
+	try {
+		socket = new WebSocket(this.url);
+	}
+	catch (err) {
+		return setTimeout(function(){
+			self.emit('error', err);
+		}, 0);
+	}
 
-function delay(fn, ms){
-  return function(){
-    setTimeout(fn, ms);
-  };
-}
+	socket.onmessage = function (message) { self.emit('message', message.data); };
+	socket.onopen = function () { self.emit('open'); };
+	socket.onclose = function () { self.emit('close'); };
+	socket.onerror = function (err) { self.emit('error', err); };
+
+	this._socket = socket;
+	this._send = socket.send.bind(socket);
+};
+

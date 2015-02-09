@@ -23,59 +23,63 @@ function WebSocketWrapper(url) {
 	Emitter.call(this);
 
 	this.url = url;
-	this._socket = undefined;
-	this._connect();
+	this._socket = this._connect();
 }
 WebSocketWrapper.prototype = Object.create(Emitter.prototype);
 
-// wrap the states
-WebSocketWrapper.prototype.CONNECTING = 0;
-WebSocketWrapper.prototype.OPEN = 1;
-WebSocketWrapper.prototype.CLOSING = 2;
-WebSocketWrapper.prototype.CLOSED = 3;
+WebSocketWrapper.CONNECTING = 0;
+WebSocketWrapper.OPEN = 1;
+WebSocketWrapper.CLOSING = 2;
+WebSocketWrapper.CLOSED = 3;
 
 // wrap readyState
 Object.defineProperty(WebSocketWrapper.prototype, 'readyState', {
 	enumerable: true,
 	get: function () {
-		return this._socket ? this._socket.readyState : this.CLOSED;
+		return this._socket ? this._socket.readyState : WebSocketWrapper.CLOSED;
 	}
 });
 
 // wrap this for easier extensibility
 WebSocketWrapper.prototype.send = function WebSocketWrapper_send(msg) {
-	if (this.readyState === this.OPEN)
-		this._send(msg);
+	if (this.readyState === WebSocketWrapper.OPEN) {
+		// Calling send() on a closed WebSocket object which reports an open
+		// readyState causes a crash. This scenario can occur when returning to
+		// a backgrounded page which received data and then closed when in the
+		// backgrounded state.
+		// https://gist.github.com/mloughran/2052006
+		setTimeout(function () {
+			this._socket.send(msg);
+		}.bind(this))
+	}
 };
 
 WebSocketWrapper.prototype.close = function WebSocketWrapper_close(code) {
-	this._close(code);
+	this._socket.close(code);
 };
+
 /**
  * Connect the websocket and hook up the events
  */
 WebSocketWrapper.prototype._connect = function WebSocketWrapper__connect() {
-	// maybe close and re-open?
-	if (this.readyState === this.OPEN)
-		return;
-	var self = this;
-	var socket;
 	try {
-		socket = new WebSocket(this.url);
+		var socket = new WebSocket(this.url);
 	}
 	catch (err) {
-		return setTimeout(function(){
-			self.emit('error', err);
-		}, 0);
+		return setTimeout(function() {
+			this.emit('error', err);
+		}.bind(this), 0);
 	}
 
-	socket.onmessage = function (message) { self.emit('message', message.data); };
-	socket.onopen = function (e) { self.emit('open', e); };
-	socket.onclose = function (e) { self.emit('close', e); };
-	socket.onerror = function (e) { self.emit('error', e); };
+	socket.onmessage = function (e) {
+		this.emit('message', e.data);
+	}.bind(this);
 
-	this._socket = socket;
-	this._send = socket.send.bind(socket);
-	this._close = socket.close.bind(socket);
+	['open', 'close', 'error'].forEach(function (event) {
+		socket['on' + event] = function (e) {
+			this.emit(event, e);
+		}.bind(this);
+	}, this);
+
+	return socket;
 };
-

@@ -1,6 +1,6 @@
 {
   "name": "websocket",
-  "version": "0.0.0",
+  "version": "0.0.2",
   "description": "thin layer on top of websockets",
   "main": "index.js",
   "directories": {

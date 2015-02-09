@@ -1,6 +1,6 @@
 {
   "name": "websocket",
-  "version": "0.0.1",
+  "version": "0.0.2",
   "description": "thin layer on top of websockets with reconnection",
   "keywords": ["websocket"],
   "author": "stagas",

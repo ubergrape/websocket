@@ -1,12 +1,13 @@
 {
   "name": "websocket",
-  "version": "0.0.2",
+  "version": "0.1.0",
   "description": "thin layer on top of websockets",
   "main": "index.js",
   "directories": {
     "test": "test"
   },
   "scripts": {
+    "start": "node test/server.js",
     "test": "echo \"Error: no test specified\" && exit 1"
   },
   "repository": "",
@@ -14,6 +15,9 @@
   "license": "BSD",
   "readmeFilename": "README.md",
   "dependencies": {
+    "component-emitter": "^1.1.3"
+  },
+  "devDependencies": {
     "ws": "~0.4.25",
     "express": "~3.2.4"
   }

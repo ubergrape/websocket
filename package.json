@@ -1,5 +1,5 @@
 {
-  "name": "websocket",
+  "name": "websocket-wrapper",
   "version": "0.1.0",
   "description": "thin layer on top of websockets",
   "main": "index.js",

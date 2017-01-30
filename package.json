@@ -1,6 +1,6 @@
 {
   "name": "websocket-wrapper",
-  "version": "0.1.0",
+  "version": "0.1.1",
   "description": "thin layer on top of websockets",
   "main": "index.js",
   "directories": {

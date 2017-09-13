@@ -21,6 +21,7 @@ function WebSocketWrapper(url) {
 		return new WebSocketWrapper(url);
 
 	Emitter.call(this);
+	if (!url) throw new Error('WebSocketWrapper: url is required.')
 
 	this.url = url;
 	this._socket = this._connect();
@@ -66,7 +67,7 @@ WebSocketWrapper.prototype._connect = function WebSocketWrapper__connect() {
 		var socket = new WebSocket(this.url);
 	}
 	catch (err) {
-		return setTimeout(function() {
+		setTimeout(function() {
 			this.emit('error', err);
 		}.bind(this), 0);
 	}
